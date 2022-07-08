@@ -4,42 +4,172 @@ a. Stored Procedure vs function
     Function returns value, stored procedure may not.
     Functions allow only select, stored procedure allows insert,update and delete as well.
 
+    create table suraj.School (
+	name varchar(25),
+	num_students int,
+	num_teachers int,
+	address varchar(25)
+	);
+
+    insert into suraj.School
+    values
+        ('School 1', 200, 23, 'kathmandu'),
+        ('School 2', 300, 23, 'lalitpur'),
+        ('School 3', 400, 23, 'pokhara'),
+        ('School 4', 250, 23, 'kathmandu');
+
+    -- function can be created and called as shown below
+
+    Create function num_of_students (@school_name varchar(25))
+    returns int
+    as
+    begin
+        Declare @num int;
+        Select @num=num_students from suraj.School where name=@school_name;
+        return @num
+    end
+
+    Go
+
+    select dbo.num_of_students('School 2');
+
+    -- Below is the example of creating and executing stored procedure
+
+    create proc sp_DeleteSchoolByName @name varchar(25)
+    as
+    begin
+        Delete from suraj.School where name=@name;
+    end
+
+    Go
+
+    exec sp_DeleteSchoolByName 'School 3';
+
 b. Clustered vs non clustered index
     Clustered index determines physical order of data.
     only one clustered index per table.
+    primary key is clustered index.
+
+    create clustered index IX_School_name
+    on suraj.School(name);
 
     can have multiple non-clustered index per table.
     non-clustered index analogous to index in text book.
+    
+    create nonclustered index IX_School_num_students
+    on suraj.School(num_students);
 
 c. Delete vs truncate vs drop
     delete can delete conditionally
+
+    delete from suraj.School; --deletes all rows
+    delete from suraj.School where name='School 1'; --deletes 'School 1' record
+
     truncate delete all rows
+
+    truncate table suraj.School; -- deletes all rows
+
     drop deletes all rows as well as the table.
+
+    drop table suraj.School; --deletes the table entirely
 
 d. Where vs having
     where filters records from table.
     having is used with group by. It filters records from groups.
 
+    Lets insert few more rows into the table.
+
+    insert into suraj.School
+    values
+        ('School 5', 200, 24, 'kathmandu'),
+        ('School 6', 350, 23, 'lalitpur'),
+        ('School 7', 450, 26, 'pokhara'),
+        ('School 8', 350, 17, 'kathmandu');
+
+    Below query first  filters using condition in where clause, so 'kathmandu' won't be in the result, 
+    then groups by address and the condition in having clause filters from that group.
+
+    select address, sum(num_students) from suraj.school
+    where address <> 'kathmandu'
+    group by address
+    having sum(num_students)>100;
+
 e. Primary key vs unique key
     Primary key is unique and not null. Only one Primary Key per table.
     Can have multiple unique keys. Unique key can contain one null value.
+
+    create table suraj.Pk_Unique (
+	id int primary key,
+	col1 int unique,
+	col2 int unique   --multiple unique keys in single table possible
+	);
+
+    insert into suraj.Pk_Unique
+    values
+        (1,1,1),
+        (2,NULL,2); -- inserting NULL for unique key works
+
+    insert into suraj.Pk_Unique
+    values
+        (3,NULL,3); --trying to insert null again results in error
 
 f. Local temporary table vs global temporary table
     local temporary table names start with #, available only in the session in which it is created.
     global temporary table names start with ##, available across multiple sessions.
 
+    create table #School1 (
+	name varchar(25),
+	num_students int,
+	num_teachers int,
+	address varchar(25)
+	);
+
+    create table ##School2 (
+	name varchar(25),
+	num_students int,
+	num_teachers int,
+	address varchar(25)
+	);
+
+    We can't access local temporary table from another session but can access global temporary table. 
+
 g. Union vs union all
     union removes duplicates, union all keeps duplicates
+
+    Select 'A','B'
+    Union
+    Select 'A','B';  --this query returns only one row since duplicate is removed
+
+    Select 'A','B'
+    Union all
+    Select 'A','B';  --this query return two rows
 
 h. Join vs union
     join combine data from multiple tables.
     union combine data from multiple select.
 
+    select sch.name as school, stu.name as student from suraj.School as sch
+    inner join suraj.Student as stu
+    on sch.name=stu.school_name;
+
 i. Count(1) vs count(*) vs count(col_name)
     count(1) and count(*) are identical. They count all rows.
     count(col_name) count the rows in which col_name is not null.
 
+    In the above suraj.Pk_Unique table, where there are two rows and 1 NULL in 'col1', the
+    below query gives    2    2    1
+
+    select count(*), count(1), count(col1)
+    from suraj.Pk_Unique;
+
 j. rank, row_number vs dense_rank
     rank skips position in case of ties. so rank may not be consecutive.
     dense rank does not skip, so dense rank is consecutive.
-    row_number gives a different number to each record within a partition.
+    row_number gives a different number to each record within a partition, which can be seen by
+    running the query below.
+
+    select name, num_students, num_teachers,
+        address, RANK() over(partition by address order by num_students) as rank_col,
+        DENSE_RANK() over(partition by address order by num_students) as dense_rank_col,
+        ROW_NUMBER() over(partition by address order by num_students) as row_number_col
+    from suraj.School;
