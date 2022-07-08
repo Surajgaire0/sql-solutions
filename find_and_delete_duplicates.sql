@@ -25,15 +25,14 @@ having count(*)>1;
 
 
 --remove duplicates
-select [Name], Salary
-into #tempEmpSalary
-from suraj.EmpSalary
-group by [Name], Salary;
+with cte as (
+	select [Name], Salary, 
+		ROW_NUMBER() over(partition by [Name], Salary order by Salary) as repeat_count
+	from suraj.EmpSalary
+	)
+delete from cte
+where repeat_count>1;
 
-truncate table suraj.EmpSalary;
-
-insert into suraj.EmpSalary
-select * from #tempEmpSalary;
 
 --see final result
 select * from suraj.EmpSalary;
