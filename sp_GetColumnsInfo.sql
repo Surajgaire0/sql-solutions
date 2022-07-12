@@ -4,7 +4,7 @@
 CREATE PROCEDURE suraj.sp_GetColumnsInfo @table_name varchar(25), @schema_name varchar(25)
 AS
 BEGIN
-	DECLARE @constraints_table TABLE (
+DECLARE @constraints_table TABLE (
 		column_name varchar(25),
 		has_pk_constraint varchar(5),
 		has_fk_constraint varchar(5),
@@ -14,10 +14,10 @@ BEGIN
 
 	INSERT INTO @constraints_table
 	SELECT ccu.COLUMN_NAME, 
-		IIF(tc.CONSTRAINT_TYPE='Primary Key','Yes','No') AS has_pk_constraint,
-		IIF(tc.CONSTRAINT_TYPE='Foreign key','Yes','No') AS has_fk_constraint,
-		IIF(tc.CONSTRAINT_TYPE='Unique','Yes','No') AS has_unique_constraint,
-		IIF(tc.CONSTRAINT_TYPE='Check','Yes','No') AS has_ckeck_constraint
+		IIF(tc.CONSTRAINT_TYPE='Primary Key','YES','NO') AS has_pk_constraint,
+		IIF(tc.CONSTRAINT_TYPE='Foreign key','YES','NO') AS has_fk_constraint,
+		IIF(tc.CONSTRAINT_TYPE='Unique','YES','NO') AS has_unique_constraint,
+		IIF(tc.CONSTRAINT_TYPE='Check','YES','NO') AS has_ckeck_constraint
 	FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
 	INNER JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
 		ON tc.CONSTRAINT_NAME=ccu.CONSTRAINT_NAME
@@ -29,18 +29,22 @@ BEGIN
 		SCHEMA_NAME(t.schema_id) AS [Schema_Name],
 		DB_NAME() AS [Database_Name],
 		c.name AS [Column_Name],
+		ic.DATA_TYPE AS [Data_Type],
 		c.max_length AS [Max_Length],
 		c.precision AS [Precision],
 		c.scale AS [Scale],
-		IIF(c.is_nullable=1,'Yes','No') AS [Is_Nullable],
-		IIF(c.is_identity=1,'Yes','No') AS [Is_Identity],
-		IIF(c.is_computed=1,'Yes','No') AS [Is_Computed],
-		ISNULL(ct.has_pk_constraint,'No') AS [has_pk_constraint],
-		ISNULL(ct.has_fk_constraint,'No') AS [has_fk_constraint],
-		ISNULL(ct.has_check_constraint,'No') AS [has_check_constraint],
-		ISNULL(ct.has_unique_constraint,'No') AS [has_unique_constraint]
+		ic.COLUMN_DEFAULT AS [default],
+		ic.is_nullable AS [Is_Nullable],
+		IIF(c.is_identity=1,'YES','NO') AS [Is_Identity],
+		IIF(c.is_computed=1,'YES','NO') AS [Is_Computed],
+		ISNULL(ct.has_pk_constraint,'NO') AS [has_pk_constraint],
+		ISNULL(ct.has_fk_constraint,'NO') AS [has_fk_constraint],
+		ISNULL(ct.has_check_constraint,'NO') AS [has_check_constraint],
+		ISNULL(ct.has_unique_constraint,'NO') AS [has_unique_constraint]
 	FROM sys.tables AS t
 	INNER JOIN sys.columns AS c ON t.object_id=c.object_id
+	INNER JOIN INFORMATION_SCHEMA.COLUMNS as ic 
+		ON ic.COLUMN_NAME=c.name AND OBJECT_SCHEMA_NAME(c.object_id)=ic.TABLE_SCHEMA AND OBJECT_NAME(c.object_id)=ic.TABLE_NAME
 	LEFT JOIN (SELECT column_name, MAX(has_pk_constraint) AS has_pk_constraint, 
 					MAX(has_fk_constraint) AS has_fk_constraint,
 					MAX(has_unique_constraint) AS has_unique_constraint,
