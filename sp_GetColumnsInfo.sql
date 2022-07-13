@@ -17,7 +17,7 @@ DECLARE @constraints_table TABLE (
 		IIF(tc.CONSTRAINT_TYPE='Primary Key','YES','NO') AS has_pk_constraint,
 		IIF(tc.CONSTRAINT_TYPE='Foreign key','YES','NO') AS has_fk_constraint,
 		IIF(tc.CONSTRAINT_TYPE='Unique','YES','NO') AS has_unique_constraint,
-		IIF(tc.CONSTRAINT_TYPE='Check','YES','NO') AS has_ckeck_constraint
+		IIF(tc.CONSTRAINT_TYPE='Check','YES','NO') AS has_check_constraint
 	FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
 	INNER JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
 		ON tc.CONSTRAINT_NAME=ccu.CONSTRAINT_NAME
@@ -29,12 +29,12 @@ DECLARE @constraints_table TABLE (
 		SCHEMA_NAME(t.schema_id) AS [Schema_Name],
 		DB_NAME() AS [Database_Name],
 		c.name AS [Column_Name],
-		ic.DATA_TYPE AS [Data_Type],
+		TYPE_NAME(c.system_type_id) AS [Data_Type],
 		c.max_length AS [Max_Length],
 		c.precision AS [Precision],
 		c.scale AS [Scale],
-		ic.COLUMN_DEFAULT AS [default],
-		ic.is_nullable AS [Is_Nullable],
+		CAST(OBJECT_DEFINITION(c.default_object_id) AS nvarchar(100)) AS [default],
+		IIF(c.is_nullable=1,'Yes','No') AS [Is_Nullable],
 		IIF(c.is_identity=1,'YES','NO') AS [Is_Identity],
 		IIF(c.is_computed=1,'YES','NO') AS [Is_Computed],
 		ISNULL(ct.has_pk_constraint,'NO') AS [has_pk_constraint],
@@ -43,8 +43,6 @@ DECLARE @constraints_table TABLE (
 		ISNULL(ct.has_unique_constraint,'NO') AS [has_unique_constraint]
 	FROM sys.tables AS t
 	INNER JOIN sys.columns AS c ON t.object_id=c.object_id
-	INNER JOIN INFORMATION_SCHEMA.COLUMNS as ic 
-		ON ic.COLUMN_NAME=c.name AND OBJECT_SCHEMA_NAME(c.object_id)=ic.TABLE_SCHEMA AND OBJECT_NAME(c.object_id)=ic.TABLE_NAME
 	LEFT JOIN (SELECT column_name, MAX(has_pk_constraint) AS has_pk_constraint, 
 					MAX(has_fk_constraint) AS has_fk_constraint,
 					MAX(has_unique_constraint) AS has_unique_constraint,
