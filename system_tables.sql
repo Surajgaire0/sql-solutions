@@ -25,7 +25,7 @@ GO
 SELECT TABLE_SCHEMA,
 		TABLE_NAME,
 		STRING_AGG(COLUMN_NAME,', ') AS PRIMARY_KEY_FIELDS
-FROM information_schema.KEY_COLUMN_USAGE
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
 WHERE CONSTRAINT_NAME LIKE 'PK%'
 GROUP BY TABLE_SCHEMA, TABLE_NAME;
 
@@ -34,16 +34,26 @@ GO
 
 -- 4. Select query that will generate truncate query for each tables in a schema
 
+DECLARE @schema_name varchar(50);
+SET @schema_name='suraj';
+
 SELECT CONCAT('truncate table ',SCHEMA_NAME(schema_id),'.',name,';') AS truncate_query
-FROM sys.tables;
+FROM sys.tables
+WHERE SCHEMA_NAME(schema_id)=@schema_name;
 
 GO
 
 
 -- 5. Select query that will generate select query for each tables in a schema
 
-SELECT CONCAT('Select ', STRING_AGG(COLUMN_NAME,', '), ' From ', TABLE_SCHEMA, '.', TABLE_NAME, ';') AS select_query
+DECLARE @schema_name varchar(50);
+SET @schema_name='suraj';
+
+SELECT TABLE_SCHEMA AS schema_name, 
+	TABLE_NAME AS table_name,
+	CONCAT('Select ', STRING_AGG(COLUMN_NAME,', '), ' From ', TABLE_SCHEMA, '.', TABLE_NAME, ';') AS query
 FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA=@schema_name
 GROUP BY TABLE_SCHEMA, TABLE_NAME;
 
 GO
